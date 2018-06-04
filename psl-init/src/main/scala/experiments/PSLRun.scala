@@ -7,7 +7,7 @@ import io.ProductReader
 object PSLRun {
 
   def main(args: Array[String]): Unit = {
-    run("Ama-Gglx")
+    run("Amz-Ggl")
   }
 
   def run(dataSetName: String): Unit = {

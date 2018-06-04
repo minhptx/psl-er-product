@@ -1,4 +1,4 @@
-name := "entity-resolution-oaei"
+name := "psl-init"
 
 version := "0.1"
 
