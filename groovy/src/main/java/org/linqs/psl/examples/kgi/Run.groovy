@@ -44,7 +44,7 @@ class Run {
     private PSLModel model
 
     Run() {
-        config = ConfigManager.getManager().getBundle("kgi")
+        config = ConfigManager.getManager().getBundle("psl-er")
 
         String suffix = System.getProperty("user.name") + "@" + getHostname()
         String baseDBPath = config.getString("dbpath", System.getProperty("java.io.tmpdir"))
@@ -75,10 +75,9 @@ class Run {
         log.info("Defining model rules")
 
         model.addRules("""
-			1: SimName(P1, P2) & (P1 != P2) -> SameAs(P1, P2) ^2
-			1: SimDescription(P1, P2) & (P1 != P2) -> SameAs(P1, P2) ^2
-			1: (SimPrice(P1, P2) != 0) & !SimPrice(P1, P2) -> !SameAs(P1, P2) ^2 
-			
+			0001: SimName(P1, P2) & (P1 != P2) -> SameAs(P1, P2) ^2
+			0001: SimDescription(P1, P2) & (P1 != P2) -> SameAs(P1, P2) ^2
+			0001: !SimPrice(P1, P2) -> !SameAs(P1, P2) ^2 
 		""")
 
         log.debug("model: {}", model)

@@ -8,6 +8,7 @@ object PSLRun {
 
   def main(args: Array[String]): Unit = {
     run("Amz-Ggl")
+    run("Abt-Buy")
   }
 
   def run(dataSetName: String): Unit = {

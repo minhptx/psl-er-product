@@ -1,5 +1,8 @@
-data/
+/data/
 target/
 psl-init/target
 psl-init/project/target
 .idea/
+psl/
+psl-init/data
+*.iml

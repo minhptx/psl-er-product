@@ -55,22 +55,22 @@ class ProductReader extends LazyLogging {
         }.toSeq: _*)
     }
 
-    val trainTestTuple = idToId.splitAt(Math.ceil(0.7 * idToId.size).toInt)
-    val trainData = trainTestTuple._1
-    val testData = trainTestTuple._2
+//    val trainTestTuple = idToId.splitAt(Math.ceil(0.7 * idToId.size).toInt)
+//    val trainData = trainTestTuple._1
+//    val testData = trainTestTuple._2
 
-    val sameObsFile = folder / "SameAs_obs.txt"
-    sameObsFile.createIfNotExists().appendLines(trainData.map {
-      case ((sourceID, targetID), value) => s"$sourceID  $targetID  $value"
-    }.toSeq: _*)
+//    val sameObsFile = folder / "SameAs_obs.txt"
+//    sameObsFile.createIfNotExists().appendLines(trainData.map {
+//      case ((sourceID, targetID), value) => s"$sourceID  $targetID  $value"
+//    }.toSeq: _*)
 
     val sameTargetFile = folder / "SameAs_targets.txt"
-    sameTargetFile.createIfNotExists().appendLines(testData.map{
+    sameTargetFile.createIfNotExists().appendLines(idToId.map{
       case ((sourceID, targetID), _) => s"$sourceID  $targetID"
     }.toSeq: _*)
 
     val sameTruthFile = folder / "SameAs_truth.txt"
-    sameTruthFile.createIfNotExists().appendLines(testData.map {
+    sameTruthFile.createIfNotExists().appendLines(idToId.map {
       case ((sourceID, targetID), value) => s"$sourceID  $targetID  $value"
     }.toSeq: _*)
 
