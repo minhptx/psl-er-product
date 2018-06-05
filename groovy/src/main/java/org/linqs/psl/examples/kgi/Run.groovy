@@ -62,6 +62,7 @@ class Run {
         model.add predicate: "SimName", types: [ConstantType.UniqueStringID, ConstantType.UniqueStringID]
         model.add predicate: "SimDescription", types: [ConstantType.UniqueStringID, ConstantType.UniqueStringID]
         model.add predicate: "SimPrice", types: [ConstantType.UniqueStringID, ConstantType.UniqueStringID]
+        model.add predicate: "HavePrice", types: [ConstantType.UniqueStringID]
         model.add predicate: "SameAs", types: [ConstantType.UniqueStringID, ConstantType.UniqueStringID]
 
 
@@ -75,9 +76,12 @@ class Run {
         log.info("Defining model rules")
 
         model.addRules("""
-			0001: SimName(P1, P2) & (P1 != P2) -> SameAs(P1, P2) ^2
-			0001: SimDescription(P1, P2) & (P1 != P2) -> SameAs(P1, P2) ^2
-			0001: !SimPrice(P1, P2) -> !SameAs(P1, P2) ^2 
+			0100: SimName(P1, P2) & (P1 != P2) -> SameAs(P1, P2) ^2
+			0010: !SimName(P1, P2) & (P1 != P2) -> !SameAs(P1, P2) ^2
+			0100: SimDescription(P1, P2) & (P1 != P2) -> SameAs(P1, P2) ^2
+			0010: !SimDescription(P1, P2) & (P1 != P2) -> !SameAs(P1, P2) ^2
+			0010: HavePrice(P1) & HavePrice(P2) & !SimPrice(P1, P2) -> !SameAs(P1, P2) ^2 
+			0001: !SameAs(P1, P2)
 		""")
 
         log.debug("model: {}", model)
@@ -101,14 +105,15 @@ class Run {
             for (StandardPredicate predicate : dataStore.getRegisteredPredicates()) {
                 String path = Paths.get(DATA_PATH, type, predicate.getName() + "_obs.txt").toString()
                 Inserter inserter = dataStore.getInserter(predicate, obsPartition)
+                println(path)
                 inserter.loadDelimitedDataTruth(path)
             }
 
             Inserter inserter = dataStore.getInserter(SameAs, targetsPartition)
-            inserter.loadDelimitedData(Paths.get(DATA_PATH, type, "SameAs_targets.txt").toString())
+            inserter.loadDelimitedData(Paths.get(DATA_PATH, type, "SAMEAS_targets.txt").toString())
 
-            inserter = dataStore.getInserter(SimDescription, truthPartition)
-            inserter.loadDelimitedData(Paths.get(DATA_PATH, type, "SameAs_truth.txt").toString())
+            inserter = dataStore.getInserter(SameAs, truthPartition)
+            inserter.loadDelimitedDataTruth(Paths.get(DATA_PATH, type, "SAMEAS_truth.txt").toString())
 
         }
     }
@@ -211,11 +216,14 @@ class Run {
                 dataStore.getRegisteredPredicates())
 
         for (StandardPredicate predicate : [SameAs]) {
-            RankingComparator comparator = new RankingComparator(resultsDB, truthDB, 0.55)
-            RankingScore stats = comparator.compare(predicate)
+            for(double threshold: [0.1, 0.2, 0.3, 0.4]) {
+                RankingComparator comparator = new RankingComparator(resultsDB, truthDB, threshold)
+                RankingScore stats = comparator.compare(predicate)
 
-            log.info(predicate.getName() + " AUROC: {}", stats.auroc())
-            log.info(predicate.getName() + " AUPRC: {}", stats.auprc())
+                log.info("Threshold:  {}", threshold)
+                log.info(predicate.getName() + " AUROC: {}", stats.auroc())
+                log.info(predicate.getName() + " AUPRC: {}", stats.auprc())
+            }
         }
 
         resultsDB.close()
@@ -227,7 +235,7 @@ class Run {
         defineRules()
         loadData()
 
-        learnWeights()
+//        learnWeights()
         runInference()
 
         writeOutput()

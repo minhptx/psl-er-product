@@ -30,11 +30,16 @@ class ProductReader extends LazyLogging {
   }
 
   def writePSLFactsToFolder(folder: File): Unit = {
-    folder.createIfNotExists(asDirectory = true)
+    folder.createIfNotExists().delete().createDirectories()
+
+//    folder.createIfNotExists(asDirectory = true)
+
+    sourceProducts = sourceProducts.take(100)
+    targetProducts = targetProducts.take(100)
 
     for (sourceProduct <- sourceProducts) {
       for (targetProduct <- targetProducts) {
-        if(!idToId.contains((sourceProduct.id, targetProduct.id))){
+        if (!idToId.contains((sourceProduct.id, targetProduct.id))) {
           idToId((sourceProduct.id, targetProduct.id)) = 0
         }
       }
@@ -51,29 +56,34 @@ class ProductReader extends LazyLogging {
         }
 
         (folder / s"${simName}_obs.txt").createIfNotExists().appendLines(idToSim.map {
-          case ((sourceProdID, targetProdID), sim) => s"$sourceProdID	$targetProdID	$sim"
+          case ((sourceProdID, targetProdID), sim) => s"$sourceProdID\t$targetProdID\t$sim"
         }.toSeq: _*)
     }
 
-//    val trainTestTuple = idToId.splitAt(Math.ceil(0.7 * idToId.size).toInt)
-//    val trainData = trainTestTuple._1
-//    val testData = trainTestTuple._2
+    (folder / s"HAVEPRICE_obs.txt").createIfNotExists().appendLines((sourceProducts ::: targetProducts).map {
+      sourceProduct => s"${sourceProduct.id}\t${if (sourceProduct.price == -1) 0 else 1}"
+    }: _*)
 
-//    val sameObsFile = folder / "SameAs_obs.txt"
-//    sameObsFile.createIfNotExists().appendLines(trainData.map {
-//      case ((sourceID, targetID), value) => s"$sourceID  $targetID  $value"
-//    }.toSeq: _*)
+    //    val trainTestTuple = idToId.splitAt(Math.ceil(0.7 * idToId.size).toInt)
+    //    val trainData = trainTestTuple._1
+    //    val testData = trainTestTuple._2
 
-    val sameTargetFile = folder / "SameAs_targets.txt"
-    sameTargetFile.createIfNotExists().appendLines(idToId.map{
-      case ((sourceID, targetID), _) => s"$sourceID  $targetID"
+    //    val sameObsFile = folder / "SameAs_obs.txt"
+    //    sameObsFile.createIfNotExists().appendLines(trainData.map {
+    //      case ((sourceID, targetID), value) => s"$sourceID  $targetID  $value"
+    //    }.toSeq: _*)
+
+    val sameTargetFile = folder / "SAMEAS_targets.txt"
+    sameTargetFile.createIfNotExists().appendLines(idToId.map {
+      case ((sourceID, targetID), _) => s"$sourceID\t$targetID"
     }.toSeq: _*)
 
-    val sameTruthFile = folder / "SameAs_truth.txt"
+    val sameTruthFile = folder / "SAMEAS_truth.txt"
     sameTruthFile.createIfNotExists().appendLines(idToId.map {
-      case ((sourceID, targetID), value) => s"$sourceID  $targetID  $value"
+      case ((sourceID, targetID), value) => s"$sourceID\t$targetID\t$value"
     }.toSeq: _*)
 
+    (folder / "SAMEAS_obs.txt").createIfNotExists()
   }
 
 

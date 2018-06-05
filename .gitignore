@@ -6,3 +6,4 @@ psl-init/project/target
 psl/
 psl-init/data
 *.iml
+inferred-predicates/
