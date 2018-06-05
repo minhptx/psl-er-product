@@ -34,8 +34,8 @@ class ProductReader extends LazyLogging {
 
 //    folder.createIfNotExists(asDirectory = true)
 
-    sourceProducts = sourceProducts.take(100)
-    targetProducts = targetProducts.take(100)
+    sourceProducts = sourceProducts.take(300)
+    targetProducts = targetProducts.take(300)
 
     for (sourceProduct <- sourceProducts) {
       for (targetProduct <- targetProducts) {

@@ -34,7 +34,7 @@ class Run {
     private static final String PARTITION_EVAL_TARGETS = "eval_targets"
     private static final String PARTITION_EVAL_TRUTH = "eval_truth"
 
-    private static final String DATA_PATH = Paths.get("..", "data", "kgi").toString()
+    private static final String DATA_PATH = Paths.get("..", "psl").toString()
     private static final String OUTPUT_PATH = "inferred-predicates"
 
     private static Logger log = LoggerFactory.getLogger(Run.class)
@@ -76,12 +76,12 @@ class Run {
         log.info("Defining model rules")
 
         model.addRules("""
-			0100: SimName(P1, P2) & (P1 != P2) -> SameAs(P1, P2) ^2
-			0010: !SimName(P1, P2) & (P1 != P2) -> !SameAs(P1, P2) ^2
-			0100: SimDescription(P1, P2) & (P1 != P2) -> SameAs(P1, P2) ^2
-			0010: !SimDescription(P1, P2) & (P1 != P2) -> !SameAs(P1, P2) ^2
+			0100: SimName(P1, P2)  -> SameAs(P1, P2) ^2
+			0100: !SimName(P1, P2)  -> !SameAs(P1, P2) ^2
+			0100: SimDescription(P1, P2)  -> SameAs(P1, P2) ^2
+			0100: !SimDescription(P1, P2)  -> !SameAs(P1, P2) ^2
 			0010: HavePrice(P1) & HavePrice(P2) & !SimPrice(P1, P2) -> !SameAs(P1, P2) ^2 
-			0001: !SameAs(P1, P2)
+			0010: !SameAs(P1, P2)
 		""")
 
         log.debug("model: {}", model)

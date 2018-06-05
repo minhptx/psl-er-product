@@ -14,6 +14,6 @@ object PSLInit {
   def run(dataSetName: String): Unit = {
     val productReader = new ProductReader()
     productReader.readDataSetFromFolder("data" / dataSetName)
-    productReader.writePSLFactsToFolder("../data/kgi" / dataSetName)
+    productReader.writePSLFactsToFolder("../psl" / dataSetName)
   }
 }
