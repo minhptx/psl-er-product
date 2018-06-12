@@ -1,29 +1,28 @@
 package data
 
-import info.debatty.java.stringsimilarity.{Cosine, Jaccard}
+import info.debatty.java.stringsimilarity.{Cosine, Jaccard, JaroWinkler}
 
 class MyProduct(val id: String, val name: String,
                 val description: String, val manufacturer: String, val price: Double = -1.0) {
 
 
   def simName(product: MyProduct): Double = {
-    val jaccard = new Jaccard(3)
+    val jaroWinkler = new JaroWinkler()
 
-    1- jaccard.distance(name, product.name)
+   jaroWinkler.similarity(product.name, name)
   }
 
   def simDescription(product: MyProduct): Double = {
     val cosine = new Cosine()
 
-    1 - cosine.distance(description, product.description)
+    cosine.similarity(description, product.description)
   }
 
   def simPrice(product: MyProduct): Double = {
-    val result = (price - product.price) / Math.max(price, product.price)
-    if (result.isInfinite || result.isNaN) 0
-    else if (result > 1) 0
-    else if (result < 0) 1
-    else 1 - result
+    val result = Math.min(product.price, price) / Math.max(product.price, price)
+    if(result > 1) 1
+    else if(result < 0) 0
+    else result
   }
 }
 

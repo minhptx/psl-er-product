@@ -2,7 +2,7 @@ package experiments
 
 import better.files._
 import File._
-import io.ProductReader
+import io.{PaperReader, ProductReader}
 
 object PSLInit {
 
@@ -12,8 +12,8 @@ object PSLInit {
   }
 
   def run(dataSetName: String): Unit = {
-    val productReader = new ProductReader()
-    productReader.readDataSetFromFolder("data" / dataSetName)
-    productReader.writePSLFactsToFolder("../psl" / dataSetName)
+    val paperReader = new PaperReader()
+    paperReader.readDataSetFromFolder("data" / "paper" / dataSetName)
+    paperReader.writePSLFactsToFolder("../psl" / dataSetName)
   }
 }

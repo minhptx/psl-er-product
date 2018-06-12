@@ -1,20 +1,19 @@
-package org.linqs.psl.examples.kgi
+package org.nuance.er
 
 import org.linqs.psl.application.inference.MPEInference
+import org.linqs.psl.application.learning.weight.TrainingMap
 import org.linqs.psl.application.learning.weight.VotedPerceptron
 import org.linqs.psl.application.learning.weight.maxlikelihood.MaxLikelihoodMPE
-import org.linqs.psl.config.ConfigBundle
-import org.linqs.psl.config.ConfigManager
+import org.linqs.psl.config.Config
 import org.linqs.psl.database.DataStore
 import org.linqs.psl.database.Database
 import org.linqs.psl.database.Partition
-import org.linqs.psl.database.Queries
+import org.linqs.psl.database.atom.PersistedAtomManager
 import org.linqs.psl.database.loading.Inserter
 import org.linqs.psl.database.rdbms.RDBMSDataStore
 import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver
 import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver.Type
-import org.linqs.psl.evaluation.statistics.RankingComparator
-import org.linqs.psl.evaluation.statistics.RankingScore
+import org.linqs.psl.evaluation.statistics.RankingEvaluator
 import org.linqs.psl.groovy.PSLModel
 import org.linqs.psl.model.atom.GroundAtom
 import org.linqs.psl.model.predicate.StandardPredicate
@@ -40,16 +39,14 @@ class Run {
     private static Logger log = LoggerFactory.getLogger(Run.class)
 
     private DataStore dataStore
-    private ConfigBundle config
     private PSLModel model
 
     Run() {
-        config = ConfigManager.getManager().getBundle("psl-er")
 
         String suffix = System.getProperty("user.name") + "@" + getHostname()
-        String baseDBPath = config.getString("dbpath", System.getProperty("java.io.tmpdir"))
+        String baseDBPath = Config.getString("dbpath", System.getProperty("java.io.tmpdir"))
         String dbPath = Paths.get(baseDBPath, this.getClass().getName() + "_" + suffix).toString()
-        dataStore = new RDBMSDataStore(new H2DatabaseDriver(Type.Disk, dbPath, true), config)
+        dataStore = new RDBMSDataStore(new H2DatabaseDriver(Type.Disk, dbPath, true))
         // dataStore = new RDBMSDataStore(new PostgreSQLDriver("psl", true), config)
 
         model = new PSLModel(this, dataStore)
@@ -59,15 +56,13 @@ class Run {
      * Defines the logical predicates used in this model
      */
     private void definePredicates() {
-        model.add predicate: "SimName", types: [ConstantType.UniqueStringID, ConstantType.UniqueStringID]
-        model.add predicate: "SimDescription", types: [ConstantType.UniqueStringID, ConstantType.UniqueStringID]
-        model.add predicate: "SimPrice", types: [ConstantType.UniqueStringID, ConstantType.UniqueStringID]
-        model.add predicate: "HavePrice", types: [ConstantType.UniqueStringID]
+        model.add predicate: "SimTitle", types: [ConstantType.UniqueStringID, ConstantType.UniqueStringID]
+        model.add predicate: "SimVenue", types: [ConstantType.UniqueStringID, ConstantType.UniqueStringID]
+        model.add predicate: "SimYear", types: [ConstantType.UniqueStringID, ConstantType.UniqueStringID]
+        model.add predicate: "SimAuthor", types: [ConstantType.UniqueStringID, ConstantType.UniqueStringID]
         model.add predicate: "SameAs", types: [ConstantType.UniqueStringID, ConstantType.UniqueStringID]
-
-
 //        model.add predicate: "Sub", types: [ConstantType.UniqueIntID, ConstantType.UniqueIntID]
-        }
+    }
 
     /**
      * Defines the rules for this model.
@@ -76,13 +71,16 @@ class Run {
         log.info("Defining model rules")
 
         model.addRules("""
-			0100: SimName(P1, P2)  -> SameAs(P1, P2) ^2
-			0100: !SimName(P1, P2)  -> !SameAs(P1, P2) ^2
-			0100: SimDescription(P1, P2)  -> SameAs(P1, P2) ^2
-			0100: !SimDescription(P1, P2)  -> !SameAs(P1, P2) ^2
-			0010: HavePrice(P1) & HavePrice(P2) & !SimPrice(P1, P2) -> !SameAs(P1, P2) ^2 
-			0010: !SameAs(P1, P2)
+			30: SimTitle(P1, P2)  -> SameAs(P1, P2) ^2
+			5: !SimAuthor(P1, P2) -> !SameAs(P1, P2) ^2
+			5: !SimVenue(P1, P2)  -> !SameAs(P1, P2) ^2
+			60: !SimYear(P1, P2)  -> !SameAs(P1, P2) ^2
+			1: !SameAs(P1, P2)
 		""")
+//        0.1: !SimName(P1, P2)  -> !SameAs(P1, P2) ^2
+//			25: SimName(P1, P2) & SimDescription(P1, P2) & HavePrice(P1) & HavePrice(P2) & SimPrice(P1, P2) -> SameAs(P1, P2) ^2
+
+//        0010: HavePrice(P1) & HavePrice(P2) & !SimPrice(P1, P2) -> !SameAs(P1, P2) ^2
 
         log.debug("model: {}", model)
     }
@@ -114,7 +112,6 @@ class Run {
 
             inserter = dataStore.getInserter(SameAs, truthPartition)
             inserter.loadDelimitedDataTruth(Paths.get(DATA_PATH, type, "SAMEAS_truth.txt").toString())
-
         }
     }
 
@@ -139,12 +136,20 @@ class Run {
         // This database only contains the true ground atoms.
         Database observedTruthDatabase = dataStore.getDatabase(truthPartition, dataStore.getRegisteredPredicates())
 
-        VotedPerceptron vp = new MaxLikelihoodMPE(model, randomVariableDatabase, observedTruthDatabase, config)
+        MyVotedPerceptron vp = new MyMaxLikelihoodMPE(model, randomVariableDatabase, observedTruthDatabase)
         vp.learn()
 
+//        for (Rule rule : model.getRules()) {
+//            try {
+//                WeightedRule weightedRule = (WeightedRule) rule
+//                log.info("Rule {} has weight {}", weightedRule.toString(), weightedRule.getWeight())
+//            }
+//            catch (Exception e) {
+//                e.printStackTrace()
+//            }
+//        }
         randomVariableDatabase.close()
         observedTruthDatabase.close()
-
         log.info("Weight learning complete")
     }
 
@@ -163,8 +168,8 @@ class Run {
 
         Database inferDB = dataStore.getDatabase(targetsPartition, closedPredicates, obsPartition)
 
-        MPEInference mpe = new MPEInference(model, inferDB, config)
-        mpe.mpeInference()
+        MPEInference mpe = new MPEInference(model, inferDB)
+        mpe.inference()
 
         mpe.close()
         inferDB.close()
@@ -183,7 +188,7 @@ class Run {
         for (StandardPredicate predicate : [SameAs]) {
             FileWriter writer = new FileWriter(Paths.get(OUTPUT_PATH, predicate.getName() + ".txt").toString())
 
-            for (GroundAtom atom : Queries.getAllAtoms(resultsDB, predicate)) {
+            for (GroundAtom atom : resultsDB.getAllGroundAtoms(predicate)) {
                 for (Constant argument : atom.getArguments()) {
                     writer.write(argument.toString() + "\t")
                 }
@@ -216,13 +221,17 @@ class Run {
                 dataStore.getRegisteredPredicates())
 
         for (StandardPredicate predicate : [SameAs]) {
-            for(double threshold: [0.1, 0.2, 0.3, 0.4]) {
-                RankingComparator comparator = new RankingComparator(resultsDB, truthDB, threshold)
-                RankingScore stats = comparator.compare(predicate)
+            for (double threshold : [0.5, 0.9]) {
+                RankingEvaluator evaluator = new RankingEvaluator(0.5)
+
+                PersistedAtomManager atomManager = new PersistedAtomManager(resultsDB)
+                TrainingMap trainingMap = new TrainingMap(atomManager, truthDB, true)
+
+                evaluator.compute(trainingMap, predicate)
+//                RankingScore stats = comparator.compare(predicate)
 
                 log.info("Threshold:  {}", threshold)
-                log.info(predicate.getName() + " AUROC: {}", stats.auroc())
-                log.info(predicate.getName() + " AUPRC: {}", stats.auprc())
+                log.info(evaluator.getAllStats())
             }
         }
 
@@ -235,7 +244,7 @@ class Run {
         defineRules()
         loadData()
 
-//        learnWeights()
+        learnWeights()
         runInference()
 
         writeOutput()
@@ -258,7 +267,7 @@ class Run {
 
         try {
             hostname = InetAddress.getLocalHost().getHostName()
-        } catch (UnknownHostException ex) {
+        } catch (UnknownHostException ignored) {
             log.warn("Hostname can not be resolved, using '" + hostname + "'.")
         }
 

@@ -16,13 +16,21 @@ object FilterMatchingScores {
   def main(args: Array[String]): Unit = {
     val productReader = new ProductReader()
     val mapping = productReader.readMappingFromCSV("data" / "eval" / "mapping.csv")
+    val sourceIdToProduct = productReader.readProductsWithIdsFromCSV("data" / "eval" / "source.csv")
+    val targetIdToProduct = productReader.readProductsWithIdsFromCSV("data" / "eval" / "target.csv")
     val lines = CSVReader.open((".." / "groovy" / "inferred-predicates" / "SameAs.txt").pathAsString).all()
 
-    ("data" / "output" / "filter_predicate.txt").createIfNotExists().appendLines(lines.drop(1).map {
+    ("data" / "output" / "filter_predicate.txt").createIfNotExists().clear().appendLines(lines.drop(1).map {
       strings =>
         ((strings.head, strings(1)), strings(2))
     }.toMap.filterKeys(mapping.contains).map {
-      case (key, value) => s"${key._1},${key._2},$value"
+      case ((sourceKey, targetKey), value) =>
+        val sourceProduct = sourceIdToProduct(sourceKey)
+        println(value)
+        val targetProduct = targetIdToProduct(targetKey)
+        s"$sourceKey,$targetKey,$value,${sourceProduct.simName(targetProduct)},${sourceProduct.simDescription(targetProduct)},${sourceProduct.simPrice(targetProduct)}"
     }.toSeq: _*)
+
+
   }
 }

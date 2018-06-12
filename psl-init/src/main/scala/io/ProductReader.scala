@@ -30,12 +30,21 @@ class ProductReader extends LazyLogging {
   }
 
   def writePSLFactsToFolder(folder: File): Unit = {
-    folder.createIfNotExists().delete().createDirectories()
+    folder.createIfNotExists(asDirectory = true).clear()
 
-//    folder.createIfNotExists(asDirectory = true)
+    //    folder.createIfNotExists(asDirectory = true)
 
     sourceProducts = sourceProducts.take(300)
     targetProducts = targetProducts.take(300)
+
+    var count = 0
+
+//        while (count < 299) {
+//          if (!idToId.contains((sourceProducts(count + 1).id, targetProducts(count).id))) {
+//            idToId((sourceProducts(count + 1).id, targetProducts(count).id)) = 0
+//          }
+//          count += 1
+//        }
 
     for (sourceProduct <- sourceProducts) {
       for (targetProduct <- targetProducts) {
@@ -51,7 +60,9 @@ class ProductReader extends LazyLogging {
         for (sourceProduct <- sourceProducts) {
           for (targetProduct <- targetProducts) {
             //            logger.whenDebugEnabled{println(simFunction(sourceProduct, targetProduct))}
-            idToSim((sourceProduct.id, targetProduct.id)) = simFunction(sourceProduct, targetProduct)
+            if (idToId.contains((sourceProduct.id, targetProduct.id))) {
+              idToSim((sourceProduct.id, targetProduct.id)) = simFunction(sourceProduct, targetProduct)
+            }
           }
         }
 
@@ -105,5 +116,17 @@ class ProductReader extends LazyLogging {
         MyProduct.createProductFromStrings(strings: _*)
       }
     )
+  }
+
+  def readProductsWithIdsFromCSV(file: File): Map[String, MyProduct] = {
+
+    val reader = CSVReader.open(file.pathAsString)
+
+    reader.all().drop(1).map(
+      strings => {
+        val product = MyProduct.createProductFromStrings(strings: _*)
+        (product.id, product)
+      }
+    ).toMap
   }
 }
